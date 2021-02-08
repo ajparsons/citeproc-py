@@ -62,19 +62,26 @@ class Tokenizer(object):
             token = self._next_token
             self._next_token = None
         else:
-            token = next(self._tokens)
+            try:
+                token = next(self._tokens)
+            except StopIteration:
+                return
         return token
 
     next = __next__
 
     def peek(self):
         if self._next_token is None:
-            self._next_token = next(self._tokens)
+            try:
+                self._next_token = next(self._tokens)
+            except StopIteration:
+                return None
         return self._next_token
 
 
 def eat_whitespace(tokens):
-    while tokens.peek().type == WHITESPACE:
+    next_obj = tokens.peek()
+    while next_obj and next_obj.type == WHITESPACE:
         next(tokens)
 
 
@@ -84,13 +91,12 @@ class ScopeClosing(Exception):
 
 def dispatch(tokens, macros, level=0):
     while True:
-        try:
-            next_token = tokens.peek()
-        except StopIteration:
+        next_token = tokens.peek()
+        if next_token is None:
             if level > 0:
                 warn("Unbalanced parenthesis in '{}'".format(tokens.string))
             break
-        if next_token.type == OPEN_SCOPE:
+        elif next_token.type == OPEN_SCOPE:
             yield handle_scope(tokens, macros, level)
         elif next_token.type == CLOSE_SCOPE:
             raise ScopeClosing
@@ -100,7 +106,11 @@ def dispatch(tokens, macros, level=0):
             yield handle_math(tokens)
         else:
             assert next_token.type in (CHARACTER, WHITESPACE)
-            yield next(tokens).value
+            try:
+                yield next(tokens).value
+            except StopIteration:
+                return
+
 
 
 def handle_scope(tokens, macros, level):
@@ -121,7 +131,7 @@ def parse_argument(tokens, macros, level=0):
 
 def handle_macro(tokens, macros):
     assert next(tokens).type == START_MACRO
-    name = parse_macro_name(tokens)
+    name = parse_macro_name(tokens).strip()
     try:
         macro = MACROS[name]
     except KeyError:
@@ -134,8 +144,14 @@ def parse_macro_name(tokens):
     assert token.type in (CHARACTER, TOGGLE_MATH, WHITESPACE)
     name = token.value
     if name.isalpha():
-        while tokens.peek().type == CHARACTER and tokens.peek().value.isalpha():
-            name += next(tokens).value
+        next_obj = tokens.peek()
+        while next_obj and next_obj.type == CHARACTER and next_obj.value.isalpha():
+            try:
+                next_obj = next(tokens)
+            except StopIteration:
+                next_obj = None
+            if next_obj:
+                name += next_obj.value
         eat_whitespace(tokens)
     return name
 
