@@ -168,6 +168,7 @@ MACROS = {
     'guilsinglright': SymbolByName('SINGLE RIGHT-POINTING ANGLE QUOTATION MARK'),
     'quotedblbase': SymbolByName('DOUBLE LOW-9 QUOTATION MARK'),
     'quotesinglbase': SymbolByName('SINGLE LOW-9 QUOTATION MARK'),
+    'ldots': SymbolByName('HORIZONTAL ELLIPSIS'),
 
     'textasciicircum': Symbol('^'),
     'textasciitilde': Symbol('~'),
